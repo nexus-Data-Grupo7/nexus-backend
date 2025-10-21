@@ -69,10 +69,10 @@ public class DBConnection {
 
     public void AdicionarPartida(Double duracao) {
         JdbcTemplate jdbc = getConnection();
-        String sql = "INSERT INTO partida (datahora_inicio, duracao_segundos, versao_patch) VALUES" +
-                "(?, ?, ?)";
+        String sql = "INSERT INTO partida (datahora_inicio, duracao_segundos) VALUES" +
+                "(?, ?)";
 
-        jdbc.update(sql, null, duracao, null);
+        jdbc.update(sql, null, duracao);
     }
 
     public Integer BuscarUltimaPartidaId() {
