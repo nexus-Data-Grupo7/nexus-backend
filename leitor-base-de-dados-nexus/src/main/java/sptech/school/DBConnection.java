@@ -28,7 +28,7 @@ public class DBConnection {
     public void InserirJogadores(List<Jogador> jogadores) {
         JdbcTemplate jdbc = getConnection();
         String sql = """
-                INSERT INTO Jogador
+                INSERT INTO jogador
                 (id_conta, id_organizacao, id_regiao, id_elo, game_name, tagline, nome, divisao, pontos_liga) VALUES
                 (?,?,?,?,?,?,?,?,?)""";
         for (int i = 0; i < jogadores.size(); i++) {
