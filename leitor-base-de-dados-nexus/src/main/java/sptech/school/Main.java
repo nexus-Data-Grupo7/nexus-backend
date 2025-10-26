@@ -1,47 +1,72 @@
 package sptech.school;
 
-import org.springframework.jdbc.core.JdbcTemplate;
+import sptech.school.aws.S3Service;
+// 1. Importa a sua nova classe de Log
+import sptech.school.LogsExtracao.Log;
 
-import java.io.File;
-import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.List;
 
 public class Main {
 
     public static void main(String[] args) {
-        String caminhoArquivo = "base de dados v1.xlsx";
-        String caminhoDaPasta = "Historico";
-        DBConnection dbConnection = new DBConnection();
+        // Nome do seu bucket S3 (substitua pelo seu)
+        String bucketName = "s3-nexus-teste";
 
+        // Cria os objetos de serviço
+        S3Service s3Service = new S3Service();
+        DBConnection dbConnection = new DBConnection();
         LeitorExcel leitorExcel = new LeitorExcel();
 
-        dbConnection.InserirJogadores(leitorExcel.Extrairjogadores(caminhoArquivo));
+        dbConnection.limparBanco();
+        // 2. Logs atualizados
+        Log.info("==== INÍCIO DO PROCESSAMENTO ====");
 
-        File pasta = new File(caminhoDaPasta);
-        File[] listaDeItens = pasta.listFiles();
+        // LER O ARQUIVO PRINCIPAL
+        String arquivoBase = "base de dados v1.xlsx";
 
-        System.out.println("Procurando por arquivos de Excel na pasta...");
+        Log.info("Buscando o arquivo principal no S3: " + arquivoBase);
 
-        if (listaDeItens != null) {
-            System.out.println("Pasta encontrada! Procurando por arquivos de Excel...");
+        try {
+            // Baixa o arquivo como InputStream
+            InputStream arquivoBaseStream = s3Service.getFileAsInputStream(bucketName, arquivoBase);
 
-            for (int i = 0; i < listaDeItens.length; i++) {
-                File item = listaDeItens[i];
+            Log.info("Arquivo encontrado! Lendo jogadores...");
+            dbConnection.InserirJogadores(leitorExcel.Extrairjogadores(arquivoBaseStream));
 
-                if (item.isFile() && item.getName().toLowerCase().endsWith(".xlsx")) {
-                    System.out.println("--- Encontrado! Processando o arquivo: " + item.getName() + " ---");
-                    leitorExcel.ExtrairHistorico(item.getPath());
-                }
-            }
-        } else {
-
-            System.err.println("ERRO: A pasta não foi encontrada no caminho especificado: " + caminhoDaPasta);
-            System.err.println("Por favor, verifique se o caminho está correto e a pasta existe.");
+            arquivoBaseStream.close();
+        } catch (Exception e) {
+            Log.erro("Erro ao ler o arquivo base: " + e.getMessage());
         }
 
-        System.out.println("Processamento concluído.");
+        // LER OS HISTÓRICOS
+        Log.info("\nBuscando arquivos na pasta 'Historico/' do S3...");
+
+        try {
+            // Lista todos os arquivos dentro da pasta "Historico/"
+            List<String> arquivosHistorico = s3Service.listObjects(bucketName, "Historico/");
+
+            if (arquivosHistorico == null || arquivosHistorico.isEmpty()) {
+                Log.info("Nenhum arquivo encontrado na pasta 'Historico/'.");
+            } else {
+                for (String key : arquivosHistorico) {
+                    // Ignora "arquivos" que são apenas a própria pasta
+                    if (key.toLowerCase().endsWith(".xlsx")) {
+                        Log.info("Processando arquivo de histórico: " + key);
+
+                        InputStream historicoStream = s3Service.getFileAsInputStream(bucketName, key);
+
+                        leitorExcel.ExtrairHistorico(historicoStream, key);
+
+                        historicoStream.close();
+                    }
+                }
+            }
+
+        } catch (Exception e) {
+            Log.erro("Erro ao processar arquivos da pasta 'Historico/': " + e.getMessage());
+        }
+
+        Log.sucesso("\n==== PROCESSAMENTO CONCLUÍDO ====");
     }
 }
