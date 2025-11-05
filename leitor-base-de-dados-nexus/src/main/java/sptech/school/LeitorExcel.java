@@ -2,7 +2,10 @@ package sptech.school;
 
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import sptech.school.LogsExtracao.Log;
+// Imports para as classes de Log específicas
+import sptech.school.LogsExtracao.LogErro;
+import sptech.school.LogsExtracao.LogInfo;
+import sptech.school.LogsExtracao.LogSucesso;
 
 import java.io.*;
 import java.time.LocalDate;
@@ -11,6 +14,19 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 public class LeitorExcel {
+
+    // Atributo final para guardar a conexão com o banco
+    private final DBConnection dbConnection;
+
+    // Construtor que recebe e armazena a conexão
+    public LeitorExcel(DBConnection dbConnection) {
+        if (dbConnection == null) {
+            // Lançamos um erro aqui porque a classe não pode funcionar sem a conexão
+            // (Não podemos usar LogErro porque dbConnection é nulo)
+            throw new IllegalArgumentException("DBConnection não pode ser nula no LeitorExcel!");
+        }
+        this.dbConnection = dbConnection;
+    }
 
     // -------------------- MAPAS DE CONVERSÃO --------------------
     private static final Map<String, Integer> REGIOES = Map.of(
@@ -45,7 +61,9 @@ public class LeitorExcel {
         List<Jogador> jogadores = new ArrayList<>();
         try (Workbook workbook = new XSSFWorkbook(inputStream)) {
             Sheet sheet = workbook.getSheetAt(0);
-            Log.info("Iniciando leitura de jogadores do arquivo: " + inputStream);
+
+            // Log atualizado
+            new LogInfo("Iniciando leitura de jogadores do arquivo: " + inputStream).registrar(this.dbConnection);
 
             int i = 0;
             for (Row row : sheet) {
@@ -55,12 +73,14 @@ public class LeitorExcel {
                 }
 
                 if (i == 0) {
-                    Log.info("Pulando linha de cabeçalho...");
+                    // Log atualizado
+                    new LogInfo("Pulando linha de cabeçalho...").registrar(this.dbConnection);
                     i++;
                     continue;
                 }
 
-                Log.info("Lendo linha " + i + "...");
+                // Log atualizado
+                new LogInfo("Lendo linha " + i + "...").registrar(this.dbConnection);
 
                 String nickName = getStringCell(row, 0);
                 String fullName = getStringCell(row, 1);
@@ -83,17 +103,21 @@ public class LeitorExcel {
                             team, role, liquipediaLink, twitter, twitch, instagram,
                             totalWinnings, regiao, eloDivisao, elo);
                     jogadores.add(novoJogador);
-                    Log.sucesso("Jogador adicionado: " + nickName);
+
+                    // Log atualizado
+                    new LogSucesso("Jogador adicionado: " + nickName).registrar(this.dbConnection);
                 }
 
                 i++;
             }
 
-            Log.sucesso("Total de jogadores lidos: " + jogadores.size());
+            // Log atualizado
+            new LogSucesso("Total de jogadores lidos: " + jogadores.size()).registrar(this.dbConnection);
             return jogadores;
 
         } catch (Exception e) {
-            Log.erro("Erro ao ler jogadores: " + e.getMessage());
+            // Log atualizado
+            new LogErro("Erro ao ler jogadores: " + e.getMessage()).registrar(this.dbConnection);
             e.printStackTrace();
             return null;
         }
@@ -109,18 +133,21 @@ public class LeitorExcel {
             String nomeBaseDoArquivo = new File(nomeDoArquivoS3).getName();
             String nomePlayer = nomeBaseDoArquivo.replace("relatorio_", "").replace(".xlsx", "").trim();
 
-            Log.info("Iniciando leitura do histórico do arquivo: " + nomeBaseDoArquivo);
-            Log.info("Nome do jogador detectado: " + nomePlayer);
+            // Log atualizado
+            new LogInfo("Iniciando leitura do histórico do arquivo: " + nomeBaseDoArquivo).registrar(this.dbConnection);
+            new LogInfo("Nome do jogador detectado: " + nomePlayer).registrar(this.dbConnection);
 
             for (int i = 0; i <= sheet.getLastRowNum(); i++) {
                 Row row = sheet.getRow(i);
                 if (row == null) continue;
                 if (i == 0) {
-                    Log.info("Pulando linha de cabeçalho...");
+                    // Log atualizado
+                    new LogInfo("Pulando linha de cabeçalho...").registrar(this.dbConnection);
                     continue;
                 }
 
-                Log.info("Lendo linha " + i + " do histórico...");
+                // Log atualizado
+                new LogInfo("Lendo linha " + i + " do histórico...").registrar(this.dbConnection);
 
                 Integer funcao = parseFuncaoCell(row.getCell(0));
                 String campeao = getStringCell(row, 1);
@@ -134,17 +161,18 @@ public class LeitorExcel {
                 Integer death = getIntCell(row.getCell(9));
                 Integer assists = getIntCell(row.getCell(10));
 
-                if (funcao == null) Log.erro("A variável 'funcao' está nula.");
-                if (campeao == null) Log.erro("A variável 'campeao' está nula.");
-                if (kda == null) Log.erro("A variável 'kda' está nula.");
-                if (csPorMin == null) Log.erro("A variável 'csPorMin' está nula.");
-                if (runas == null) Log.erro("A variável 'runas' está nula.");
-                if (feitico == null) Log.erro("A variável 'feitico' está nula.");
-                if (resultadoBool == null) Log.erro("A variável 'resultado' está nula.");
-                if (duracao == null) Log.erro("A variável 'duracao' está nula.");
-                if (kill == null) Log.erro("A variável 'kill' está nula.");
-                if (death == null) Log.erro("A variável 'death' está nula.");
-                if (assists == null) Log.erro("A variável 'assists' está nula.");
+                // Logs de Erro atualizados (adicionando a linha para contexto)
+                if (funcao == null) new LogErro("A variável 'funcao' está nula. (Linha " + i + ")").registrar(this.dbConnection);
+                if (campeao == null) new LogErro("A variável 'campeao' está nula. (Linha " + i + ")").registrar(this.dbConnection);
+                if (kda == null) new LogErro("A variável 'kda' está nula. (Linha " + i + ")").registrar(this.dbConnection);
+                if (csPorMin == null) new LogErro("A variável 'csPorMin' está nula. (Linha " + i + ")").registrar(this.dbConnection);
+                if (runas == null) new LogErro("A variável 'runas' está nula. (Linha " + i + ")").registrar(this.dbConnection);
+                if (feitico == null) new LogErro("A variável 'feitico' está nula. (Linha " + i + ")").registrar(this.dbConnection);
+                if (resultadoBool == null) new LogErro("A variável 'resultado' está nula. (Linha " + i + ")").registrar(this.dbConnection);
+                if (duracao == null) new LogErro("A variável 'duracao' está nula. (Linha " + i + ")").registrar(this.dbConnection);
+                if (kill == null) new LogErro("A variável 'kill' está nula. (Linha " + i + ")").registrar(this.dbConnection);
+                if (death == null) new LogErro("A variável 'death' está nula. (Linha " + i + ")").registrar(this.dbConnection);
+                if (assists == null) new LogErro("A variável 'assists' está nula. (Linha " + i + ")").registrar(this.dbConnection);
 
                 if (funcao != null && campeao != null && kda != null && csPorMin != null &&
                         runas != null && feitico != null && resultadoBool != null &&
@@ -158,16 +186,22 @@ public class LeitorExcel {
                     );
 
                     historico.add(novaPartida);
-                    Log.sucesso("Partida carregada: ");
+
+                    // Log atualizado (adicionando mais contexto)
+                    new LogSucesso("Partida carregada: " + nomePlayer + " - " + campeao).registrar(this.dbConnection);
                 }
             }
         } catch (IOException e) {
+            // Log atualizado
+            new LogErro("Erro de I/O ao ler o arquivo de histórico: " + e.getMessage()).registrar(this.dbConnection);
             throw new RuntimeException(e);
         }
 
-        DBConnection dbConnection = new DBConnection();
-        dbConnection.InserirDesempenhoPartida(historico);
-        Log.sucesso("Inserção no banco concluída com " + historico.size() + " partidas.");
+        // Correção: Usar 'this.dbConnection' em vez de criar uma nova
+        this.dbConnection.InserirDesempenhoPartida(historico);
+
+        // Log atualizado
+        new LogSucesso("Inserção no banco concluída com " + historico.size() + " partidas.").registrar(this.dbConnection);
         return historico;
     }
 
@@ -186,12 +220,14 @@ public class LeitorExcel {
     private LocalDate parseDateCell(Cell cell) {
         if (cell == null) return null;
         try {
-            if (cell.getCellType() == CellType.NUMERIC) return cell.getLocalDateTimeCellValue().toLocalDate();
-            else if (cell.getCellType() == CellType.STRING) {
+            if (cell.getCellType() == CellType.NUMERIC) {
+                return cell.getLocalDateTimeCellValue().toLocalDate();
+            } else if (cell.getCellType() == CellType.STRING) {
                 return LocalDate.parse(cell.getStringCellValue().trim(), DateTimeFormatter.ofPattern("dd/MM/yyyy"));
             }
         } catch (Exception e) {
-            Log.erro("Erro ao analisar a data: " + (cell != null ? cell.getStringCellValue() : "null"));
+            // Log atualizado
+            new LogErro("Erro ao analisar a data: " + (cell != null ? cell.toString() : "null")).registrar(this.dbConnection);
         }
         return null;
     }
@@ -199,13 +235,16 @@ public class LeitorExcel {
     private Double parseDoubleCell(Cell cell) {
         if (cell == null) return null;
         try {
-            if (cell.getCellType() == CellType.NUMERIC) return cell.getNumericCellValue();
+            if (cell.getCellType() == CellType.NUMERIC) {
+                return cell.getNumericCellValue();
+            }
             if (cell.getCellType() == CellType.STRING) {
                 String valorStr = cell.getStringCellValue().replaceAll("[^\\d.]", "");
                 return Double.parseDouble(valorStr);
             }
         } catch (NumberFormatException e) {
-            Log.erro("Erro ao converter valor: " + cell.getStringCellValue());
+            // Log atualizado
+            new LogErro("Erro ao converter valor: " + cell.getStringCellValue()).registrar(this.dbConnection);
         }
         return null;
     }
@@ -248,7 +287,8 @@ public class LeitorExcel {
             try {
                 return Double.parseDouble(texto.substring(texto.indexOf('(') + 1, texto.indexOf('/')).replace(",", "."));
             } catch (NumberFormatException e) {
-                Log.erro("Erro ao converter csPorMin: " + texto);
+                // Log atualizado
+                new LogErro("Erro ao converter csPorMin: " + texto).registrar(this.dbConnection);
             }
         }
         return null;
@@ -276,9 +316,9 @@ public class LeitorExcel {
                 segundos = Integer.parseInt(partes[2]);
             }
         } catch (NumberFormatException e) {
-            Log.erro("Erro ao converter duracao: " + cell.getStringCellValue());
+            // Log atualizado
+            new LogErro("Erro ao converter duracao: " + cell.getStringCellValue()).registrar(this.dbConnection);
         }
         return (double) horas * 3600 + minutos * 60 + segundos;
     }
-
 }

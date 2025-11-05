@@ -34,31 +34,6 @@ public class S3Service {
         }
     }
 
-    public Optional<String> getLatestFileKey(String bucketName, String suffix) {
-        System.out.println("Procurando o arquivo mais recente no bucket: " + bucketName);
-        try {
-            ListObjectsV2Request listReq = ListObjectsV2Request.builder()
-                    .bucket(bucketName)
-                    .build();
-
-            List<S3Object> objects = s3Client.listObjectsV2(listReq).contents();
-
-            if (objects.isEmpty()) {
-                return Optional.empty();
-            }
-
-            Optional<S3Object> latestObject = objects.stream()
-                    .filter(obj -> obj.key().toLowerCase().endsWith(suffix))
-                    .max(Comparator.comparing(S3Object::lastModified));
-
-            return latestObject.map(S3Object::key);
-
-        } catch (S3Exception e) {
-            System.err.println("Erro ao listar arquivos no S3: " + e.awsErrorDetails().errorMessage());
-            throw new RuntimeException("Falha ao listar arquivos no S3.", e);
-        }
-    }
-
     public List<String> listObjects(String bucketName, String prefix) {
         try {
             ListObjectsV2Request listReq = ListObjectsV2Request.builder()

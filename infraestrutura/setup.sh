@@ -1,4 +1,4 @@
-#!/bin/bash
+ vc#!/bin/bash
 set -e
 
 echo "Iniciando a configuração completa do servidor e da aplicação..."

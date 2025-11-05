@@ -2,9 +2,11 @@ package sptech.school;
 
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.springframework.dao.EmptyResultDataAccessException;
-import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
-import sptech.school.LogsExtracao.Log;
+// 1. Imports atualizados
+import sptech.school.LogsExtracao.LogErro;
+import sptech.school.LogsExtracao.LogInfo;
+import sptech.school.LogsExtracao.LogSucesso;
 
 import javax.sql.DataSource;
 import java.util.List;
@@ -21,15 +23,19 @@ public class DBConnection {
         String senha_bd = System.getenv("MYSQL_PASSWORD");
 
 
+        // 2. "Bootstrap" Log: Usamos System.err aqui porque o log no banco AINDA não funciona.
         if (host == null || bd == null || user_bd == null || senha_bd == null) {
-            Log.erro("ERRO CRÍTICO: Variáveis de ambiente do banco de dados (DB_HOST, MYSQL_DATABASE, MYSQL_USER, MYSQL_PASSWORD) não estão definidas!");
+            // Este é um erro fatal ANTES do log ser configurado.
+            System.err.println("ERRO CRÍTICO: Variáveis de ambiente do banco de dados (DB_HOST, MYSQL_DATABASE, MYSQL_USER, MYSQL_PASSWORD) não estão definidas!");
             throw new IllegalStateException("Variáveis de ambiente do banco de dados não configuradas.");
         }
 
         BasicDataSource basicDataSource = new BasicDataSource();
 
         String url = String.format("jdbc:mysql://%s:3306/%s", host, bd);
-        Log.info("Conectando ao banco de dados: " + url);
+
+        // 3. "Bootstrap" Log: Usamos System.out aqui.
+        System.out.println("[BOOTSTRAP] Conectando ao banco de dados: " + url);
         basicDataSource.setUrl(url);
 
         basicDataSource.setUsername(user_bd);
@@ -51,10 +57,13 @@ public class DBConnection {
                 INSERT INTO jogador
                 (id_conta, id_organizacao, id_regiao, id_elo, game_name, tagline, nome, divisao, pontos_liga) VALUES
                 (?,?,?,?,?,?,?,?,?)""";
+
         for (int i = 0; i < jogadores.size(); i++) {
             jdbc.update(sql, null, null, jogadores.get(i).getRegiao(), jogadores.get(i).getElo(), jogadores.get(i).getNickName(), null, jogadores.get(i).getFullName(), jogadores.get(i).getEloDivisao(), null);
 
-            System.out.println("Jogador " + jogadores.get(i).getNickName() + " inserido com sucesso");
+            // 4. Log atualizado para o novo sistema
+            // Usamos 'this' para passar a própria conexão para o método de registro.
+            new LogSucesso("Jogador " + jogadores.get(i).getNickName() + " inserido com sucesso").registrar(this);
         }
     }
 
@@ -65,6 +74,8 @@ public class DBConnection {
         try {
             return jdbc.queryForObject(sql, String.class, nomejogador);
         } catch (EmptyResultDataAccessException e) {
+            // Um log de erro aqui pode ser útil se um jogador não for encontrado
+            new LogErro("Nenhum jogador encontrado com o nome: " + nomejogador).registrar(this);
             return null;
         }
     }
@@ -74,14 +85,19 @@ public class DBConnection {
 
         String sql = "SELECT id_campeao FROM campeao WHERE LOWER(nome_campeao) = LOWER(?)";
 
-        return jdbc.queryForObject(sql, Integer.class, nomeCampeao);
+        try {
+            return jdbc.queryForObject(sql, Integer.class, nomeCampeao);
+        } catch (EmptyResultDataAccessException e) {
+            new LogErro("Nenhum campeão encontrado com o nome: " + nomeCampeao).registrar(this);
+            return 0; // Retornar 0 ou um ID padrão pode ser melhor que falhar
+        }
     }
 
     public void AdicionarPartida(Double duracao) {
         JdbcTemplate jdbc = getConnection();
-        String sql = "INSERT INTO partida (datahora_inicio, duracao_segundos) VALUES" + "(?, ?)";
+        String sql = "INSERT INTO partida (datahora_inicio, duracao_segundos) VALUES" + "(NOW(), ?)"; // Usando NOW() para datahora_inicio
 
-        jdbc.update(sql, null, duracao);
+        jdbc.update(sql, duracao);
     }
 
     public Integer BuscarUltimaPartidaId() {
@@ -91,14 +107,25 @@ public class DBConnection {
         try {
             return jdbc.queryForObject(sql, Integer.class);
         } catch (EmptyResultDataAccessException e) {
+            new LogErro("Nenhuma partida encontrada na tabela 'partida' (está vazia?)").registrar(this);
             return null; // caso a tabela esteja vazia
         }
     }
 
     public void InserirDesempenhoPartida(List<Partida> partidas) {
+        if (partidas == null || partidas.isEmpty()) {
+            new LogInfo("Nenhuma partida para inserir em InserirDesempenhoPartida.").registrar(this);
+            return;
+        }
+
         JdbcTemplate jdbc = getConnection();
 
         String idJogador = BuscarJogadorId(partidas.get(0).getNomePlayer());
+        if (idJogador == null) {
+            new LogErro("Não foi possível inserir desempenho. Jogador " + partidas.get(0).getNomePlayer() + " não encontrado.").registrar(this);
+            return; // Encerra o método se o jogador não existir
+        }
+
         String sql = """
                     INSERT INTO desempenho_partida (
                         id_jogador,
@@ -120,40 +147,81 @@ public class DBConnection {
             Partida partidaAtual = partidas.get(i);
             AdicionarPartida(partidaAtual.getDuracao());
 
-            jdbc.update(sql, idJogador, BuscarUltimaPartidaId(), BuscarIdCampeao(partidaAtual.getCampeao()), partidaAtual.getFuncao(), partidaAtual.getResultado(), partidaAtual.getKill(), partidaAtual.getDeath(), partidaAtual.getAssists(), partidaAtual.getCs(), partidaAtual.getCsPorMin(), partidaAtual.getRunas(), partidaAtual.getFeitico());
+            Integer idUltimaPartida = BuscarUltimaPartidaId();
+            Integer idCampeao = BuscarIdCampeao(partidaAtual.getCampeao());
 
+            jdbc.update(sql,
+                    idJogador,
+                    idUltimaPartida,
+                    idCampeao,
+                    partidaAtual.getFuncao(),
+                    partidaAtual.getResultado(),
+                    partidaAtual.getKill(),
+                    partidaAtual.getDeath(),
+                    partidaAtual.getAssists(),
+                    partidaAtual.getCs(),
+                    partidaAtual.getCsPorMin(),
+                    partidaAtual.getRunas(),
+                    partidaAtual.getFeitico()
+            );
         }
     }
 
     public void limparBanco() {
         JdbcTemplate jdbc = getConnection();
-        Log.info("Iniciando limpeza das tabelas transacionais...");
+        // 5. Logs atualizados para o novo sistema
+        new LogInfo("Iniciando limpeza das tabelas transacionais...").registrar(this);
 
         try {
             // 1. Desabilita as chaves estrangeiras
             jdbc.execute("SET FOREIGN_KEY_CHECKS = 0;");
 
-            // 2. Executa os TRUNCATEs (a ordem não importa aqui)
-            Log.info("Limpando 'jogador'...");
+            // 2. Executa os TRUNCATEs
+            new LogInfo("Limpando 'jogador'...").registrar(this);
             jdbc.execute("TRUNCATE TABLE jogador;");
 
-            Log.info("Limpando 'partida'...");
+            new LogInfo("Limpando 'partida'...").registrar(this);
             jdbc.execute("TRUNCATE TABLE partida;");
 
-            Log.info("Limpando 'desempenho_partida'...");
+            new LogInfo("Limpando 'desempenho_partida'...").registrar(this);
             jdbc.execute("TRUNCATE TABLE desempenho_partida;");
 
-            Log.info("Limpando 'jogador_estatistica'...");
+            new LogInfo("Limpando 'jogador_estatistica'...").registrar(this);
             jdbc.execute("TRUNCATE TABLE jogador_estatistica;");
 
         } catch (Exception e) {
-            Log.erro("Erro durante a limpeza do banco: " + e.getMessage());
+            new LogErro("Erro durante a limpeza do banco: " + e.getMessage()).registrar(this);
 
         } finally {
-
-            Log.info("Reabilitando chaves estrangeiras...");
+            new LogInfo("Reabilitando chaves estrangeiras...").registrar(this);
             jdbc.execute("SET FOREIGN_KEY_CHECKS = 1;");
-            Log.sucesso("Tabelas do banco de dados limpas.");
+            new LogSucesso("Tabelas do banco de dados limpas.").registrar(this);
+        }
+    }
+
+    public void inserirLog(String status, String mensagem) {
+        JdbcTemplate jdbc = getConnection();
+
+        String sql = """
+                    INSERT INTO log (
+                        log_time,
+                        status_log,
+                        mensagem
+                    ) VALUES (NOW(), ?, ?)
+                """;
+
+        try {
+            String mensagemTruncada = (mensagem != null && mensagem.length() > 500) ? mensagem.substring(0, 500) : mensagem;
+
+            jdbc.update(sql, status, mensagemTruncada);
+
+        } catch (Exception e) {
+
+            System.err.println("--- FALHA CRÍTICA AO INSERIR LOG NO BANCO ---");
+            System.err.println("Status: " + status);
+            System.err.println("Mensagem: " + mensagem);
+            e.printStackTrace();
+            System.err.println("---------------------------------------------");
         }
     }
 }

@@ -131,40 +131,47 @@ CREATE TABLE campeao_classe (
         ON DELETE CASCADE
 );
 
-INSERT INTO regiao (codigo_regiao, nome_regiao) VALUES
-('BR1', 'Brasil'),
-('NA1', 'América do Norte'),
-('LA1', 'América Latina Norte'),
-('LA2', 'América Latina Sul'),
-('KR', 'Coreia'),
-('EUN1', 'Europa Nórdica e Leste'),
+CREATE TABLE log (
+id_log INT PRIMARY KEY AUTO_INCREMENT,
+log_time TIMESTAMP,
+status_log VARCHAR(10) NOT NULL,
+mensagem VARCHAR(500) NOT NULL
+);
+
+INSERT INTO regiao (codigo_regiao, nome_regiao) VALUES 
+('BR1', 'Brasil'), 
+('NA1', 'América do Norte'), 
+('LA1', 'América Latina Norte'), 
+('LA2', 'América Latina Sul'), 
+('KR', 'Coreia'), 
+('EUN1', 'Europa Nórdica e Leste'), 
 ('EUW1', 'Europa Ocidental');
 
-INSERT INTO elo (nome_elo, ordem_classificacao) VALUES
-('Ferro', 1),
-('Bronze', 2),
-('Prata', 3),
-('Ouro', 4),
-('Platina', 5),
-('Esmeralda', 6),
-('Diamante', 7),
-('Mestre', 8),
-('Grão-Mestre', 9),
+INSERT INTO elo (nome_elo, ordem_classificacao) VALUES 
+('Ferro', 1), 
+('Bronze', 2), 
+('Prata', 3), 
+('Ouro', 4), 
+('Platina', 5), 
+('Esmeralda', 6), 
+('Diamante', 7), 
+('Mestre', 8), 
+('Grão-Mestre', 9), 
 ('Desafiante', 10);
 
-INSERT INTO funcao (nome_funcao) VALUES
-('Topo'),
-('Caçador'),
-('Meio'),
-('Atirador'),
+INSERT INTO funcao (nome_funcao) VALUES 
+('Topo'), 
+('Caçador'), 
+('Meio'), 
+('Atirador'), 
 ('Suporte');
 
-INSERT INTO classe (nome_classe) VALUES
-('Lutador'),
-('Mago'),
-('Assassino'),
-('Tanque'),
-('Atirador'),
+INSERT INTO classe (nome_classe) VALUES 
+('Lutador'), 
+('Mago'), 
+('Assassino'), 
+('Tanque'), 
+('Atirador'), 
 ('Suporte');
 
 INSERT INTO campeao (id_campeao_riot, nome_campeao) VALUES
