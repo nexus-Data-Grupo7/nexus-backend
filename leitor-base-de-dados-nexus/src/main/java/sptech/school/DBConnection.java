@@ -45,17 +45,28 @@ public class DBConnection {
     public void InserirJogadores(List<Jogador> jogadores) {
         JdbcTemplate jdbc = getConnection();
 
-        // Usa INSERT IGNORE para evitar duplicatas com base em (game_name, tagline)
         String sql = """
                     INSERT IGNORE INTO jogador
-                    (id_conta, id_organizacao, id_regiao, id_elo, game_name, tagline, nome, divisao, pontos_liga)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    (id_conta, id_organizacao, id_regiao, id_elo, game_name, tagline, nome, divisao, pontos_liga, premiacao)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """;
 
         for (Jogador j : jogadores) {
             try {
-                // ✅ Garante que tagline nunca é nula (para manter UNIQUE funcionando)
                 String taglineSegura = "";
+
+                // 🚩 CORREÇÃO IMPORTANTE AQUI
+                // Converte o ID da divisão (1, 2, 3, 4) para o ENUM ('I', 'II', 'III', 'IV')
+                String divisaoString = null;
+                if (j.getEloDivisao() != null) {
+                    divisaoString = switch (j.getEloDivisao()) {
+                        case 1 -> "I";
+                        case 2 -> "II";
+                        case 3 -> "III";
+                        case 4 -> "IV";
+                        default -> null; // Ignora o '5' (v) do seu mapa, pois o ENUM só vai até IV
+                    };
+                }
 
                 int linhasAfetadas = jdbc.update(sql,
                         null, // id_conta
@@ -65,8 +76,9 @@ public class DBConnection {
                         j.getNickName(), // game_name
                         taglineSegura,   // sempre string vazia
                         j.getFullName(),
-                        j.getEloDivisao(),
-                        null // pontos_liga
+                        divisaoString,
+                        null, // pontos_liga
+                        j.getTotalWinnings() // <-- VALOR DA PREMIAÇÃO AQUI
                 );
 
                 if (linhasAfetadas == 0) {
@@ -101,7 +113,8 @@ public class DBConnection {
             return jdbc.queryForObject(sql, Integer.class, nomeCampeao);
         } catch (EmptyResultDataAccessException e) {
             new LogErro("Nenhum campeão encontrado com o nome: " + nomeCampeao).registrar(this);
-            return 0;
+            // 🚩 CORREÇÃO: Retorna null em vez de 0
+            return null;
         }
     }
 
@@ -139,40 +152,50 @@ public class DBConnection {
 
         String sql = """
                     INSERT INTO desempenho_partida (
-                        id_jogador,
-                        id_partida,
-                        id_campeao,
-                        id_funcao,
-                        resultado,
-                        abates,
-                        mortes,
-                        assistencias,
-                        cs_num,
-                        cs_por_minuto,
-                        runa_principal,
-                        feiticos
+                        id_jogador, id_partida, id_campeao, id_funcao,
+                        resultado, abates, mortes, assistencias,
+                        cs_num, cs_por_minuto, runa_principal, feiticos
                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """;
 
+        // 🚩 CORREÇÃO: Adicionado try-catch dentro do loop
         for (Partida p : partidas) {
-            AdicionarPartida(p.getDuracao());
-            Integer idUltimaPartida = BuscarUltimaPartidaId();
-            Integer idCampeao = BuscarIdCampeao(p.getCampeao());
+            try {
+                AdicionarPartida(p.getDuracao());
+                Integer idUltimaPartida = BuscarUltimaPartidaId();
+                Integer idCampeao = BuscarIdCampeao(p.getCampeao());
 
-            jdbc.update(sql,
-                    idJogador,
-                    idUltimaPartida,
-                    idCampeao,
-                    p.getFuncao(),
-                    p.getResultado(),
-                    p.getKill(),
-                    p.getDeath(),
-                    p.getAssists(),
-                    p.getCs(),
-                    p.getCsPorMin(),
-                    p.getRunas(),
-                    p.getFeitico()
-            );
+                // Validações explícitas
+                if (idUltimaPartida == null) {
+                    new LogErro("Falha ao buscar ID da última partida. Pulando inserção para " + p.getCampeao()).registrar(this);
+                    continue; // Pula para a próxima partida
+                }
+
+                if (idCampeao == null) {
+                    // O log de erro já é registrado por BuscarIdCampeao
+                    new LogErro("Pulando partida com campeão '" + p.getCampeao() + "' (não encontrado).").registrar(this);
+                    continue; // Pula para a próxima partida
+                }
+
+                jdbc.update(sql,
+                        idJogador,
+                        idUltimaPartida,
+                        idCampeao,
+                        p.getFuncao(),
+                        p.getResultado(),
+                        p.getKill(),
+                        p.getDeath(),
+                        p.getAssists(),
+                        p.getCs(),
+                        p.getCsPorMin(),
+                        p.getRunas(),
+                        p.getFeitico()
+                );
+            } catch (Exception e) {
+                new LogErro("Falha grave ao inserir partida (Jogador: %s, Campeão: %s): %s"
+                        .formatted(p.getNomePlayer(), p.getCampeao(), e.getMessage()))
+                        .registrar(this);
+            }
         }
     }
 
@@ -189,8 +212,9 @@ public class DBConnection {
             new LogInfo("Limpando 'desempenho_partida'...").registrar(this);
             jdbc.execute("TRUNCATE TABLE desempenho_partida;");
 
-            new LogInfo("Limpando 'jogador_estatistica'...").registrar(this);
-            jdbc.execute("TRUNCATE TABLE jogador_estatistica;");
+            // 🚩 CORREÇÃO: Removida a tabela que não existe mais
+            // new LogInfo("Limpando 'jogador_estatistica'...").registrar(this);
+            // jdbc.execute("TRUNCATE TABLE jogador_estatistica;");
 
         } catch (Exception e) {
             new LogErro("Erro durante a limpeza do banco: " + e.getMessage()).registrar(this);
@@ -203,14 +227,19 @@ public class DBConnection {
 
     public void inserirLog(String status, String mensagem) {
         JdbcTemplate jdbc = getConnection();
+
+        // Este SQL está CORRETO para sua nova tabela log
         String sql = """
-                    INSERT INTO log (log_time, status_log, mensagem)
-                    VALUES (NOW(), ?, ?)
+                    INSERT INTO log (id_conta, status_log, mensagem)
+                    VALUES (?, ?, ?)
                 """;
 
         try {
             String msg = (mensagem != null && mensagem.length() > 500) ? mensagem.substring(0, 500) : mensagem;
-            jdbc.update(sql, status, msg);
+
+            // E esta chamada está CORRETA
+            jdbc.update(sql, null, status, msg);
+
         } catch (Exception e) {
             System.err.println("--- FALHA CRÍTICA AO INSERIR LOG NO BANCO ---");
             System.err.println("Status: " + status);

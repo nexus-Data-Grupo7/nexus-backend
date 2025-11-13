@@ -1,7 +1,7 @@
 CREATE DATABASE IF NOT EXISTS db_nexus;
 USE db_nexus;
 
-CREATE TABLE conta (
+CREATE TABLE IF NOT EXISTS conta (
     id_conta INT PRIMARY KEY AUTO_INCREMENT,
     email VARCHAR(255) UNIQUE NOT NULL,
     senha_hash VARCHAR(255) NOT NULL,
@@ -9,7 +9,7 @@ CREATE TABLE conta (
     data_cadastro DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE organizacao (
+CREATE TABLE IF NOT EXISTS organizacao (
     id_organizacao INT PRIMARY KEY AUTO_INCREMENT,
     id_conta INT UNIQUE NOT NULL,
     nome_org VARCHAR(100) NOT NULL,
@@ -20,19 +20,19 @@ CREATE TABLE organizacao (
         ON DELETE CASCADE
 );
 
-CREATE TABLE elo (
+CREATE TABLE IF NOT EXISTS elo (
     id_elo INT PRIMARY KEY AUTO_INCREMENT,
     nome_elo VARCHAR(50) UNIQUE NOT NULL,
     ordem_classificacao INT NOT NULL UNIQUE
 );
 
-CREATE TABLE regiao (
+CREATE TABLE IF NOT EXISTS regiao (
     id_regiao INT PRIMARY KEY AUTO_INCREMENT,
     codigo_regiao VARCHAR(10) UNIQUE NOT NULL,
     nome_regiao VARCHAR(50) NOT NULL
 );
 
-CREATE TABLE jogador (
+CREATE TABLE IF NOT EXISTS jogador (
     id_jogador INT PRIMARY KEY AUTO_INCREMENT,
     id_conta INT UNIQUE NULL,
     id_organizacao INT NULL,
@@ -43,6 +43,7 @@ CREATE TABLE jogador (
     nome VARCHAR(45) NOT NULL,
     divisao ENUM('I', 'II', 'III', 'IV') NULL,
     pontos_liga INT DEFAULT 0,
+    premiacao DOUBLE DEFAULT 0.00,
     CONSTRAINT fk_jogador_conta FOREIGN KEY (id_conta)
         REFERENCES conta(id_conta)
         ON DELETE CASCADE,
@@ -57,24 +58,24 @@ CREATE TABLE jogador (
     CONSTRAINT uk_riot_nick UNIQUE (game_name , tagline)
 );
 
-CREATE TABLE partida (
+CREATE TABLE IF NOT EXISTS partida (
     id_partida INT PRIMARY KEY AUTO_INCREMENT,
     datahora_inicio DATETIME,
     duracao_segundos INT NOT NULL
 );
 
-CREATE TABLE funcao (
+CREATE TABLE IF NOT EXISTS funcao (
     id_funcao INT PRIMARY KEY AUTO_INCREMENT,
     nome_funcao VARCHAR(25) UNIQUE NOT NULL
 );
 
-CREATE TABLE campeao (
+CREATE TABLE IF NOT EXISTS campeao (
     id_campeao INT PRIMARY KEY AUTO_INCREMENT,
     id_campeao_riot INT UNIQUE NOT NULL,
     nome_campeao VARCHAR(50) NOT NULL
 );
 
-CREATE TABLE desempenho_partida (
+CREATE TABLE IF NOT EXISTS desempenho_partida (
     id_desempenho INT PRIMARY KEY AUTO_INCREMENT,
     id_jogador INT NOT NULL,
     id_partida INT NOT NULL,
@@ -99,27 +100,12 @@ CREATE TABLE desempenho_partida (
         REFERENCES funcao(id_funcao)
 );
 
-CREATE TABLE jogador_estatistica (
-    id_estatistica INT PRIMARY KEY AUTO_INCREMENT,
-    id_jogador INT NOT NULL UNIQUE,
-    total_partidas_analisadas INT DEFAULT 0,
-    taxa_vitorias DECIMAL(5, 2) DEFAULT 0,
-    media_kills DECIMAL(4, 1) DEFAULT 0,
-    media_deaths DECIMAL(4, 1) DEFAULT 0,
-    media_assists DECIMAL(4, 1) DEFAULT 0,
-    media_cs DECIMAL(5, 1) DEFAULT 0,
-    duracao_media_minutos DECIMAL(5, 1) DEFAULT 0,
-    ultima_atualizacao DATETIME NOT NULL,
-    CONSTRAINT fk_estatistica_jogador FOREIGN KEY (id_jogador)
-        REFERENCES jogador(id_jogador) ON DELETE CASCADE
-);
-
-CREATE TABLE classe (
+CREATE TABLE IF NOT EXISTS classe (
     id_classe INT PRIMARY KEY AUTO_INCREMENT,
     nome_classe VARCHAR(50) UNIQUE NOT NULL
 );
 
-CREATE TABLE campeao_classe (
+CREATE TABLE IF NOT EXISTS campeao_classe (
     id_campeao INT,
     id_classe INT,
     CONSTRAINT pk_campeao_classe PRIMARY KEY (id_campeao , id_classe),
@@ -131,11 +117,15 @@ CREATE TABLE campeao_classe (
         ON DELETE CASCADE
 );
 
-CREATE TABLE log (
-id_log INT PRIMARY KEY AUTO_INCREMENT,
-log_time TIMESTAMP,
-status_log VARCHAR(10) NOT NULL,
-mensagem VARCHAR(500) NOT NULL
+CREATE TABLE IF NOT EXISTS log (
+    id_log INT PRIMARY KEY AUTO_INCREMENT,
+    id_conta INT NULL,
+    log_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    status_log ENUM('ERRO', 'INFO', 'SUCESSO') NOT NULL,
+    mensagem VARCHAR(500) NOT NULL,
+    CONSTRAINT fk_log_conta FOREIGN KEY (id_conta) 
+        REFERENCES conta(id_conta) 
+        ON DELETE SET NULL
 );
 
 INSERT INTO regiao (codigo_regiao, nome_regiao) VALUES 
