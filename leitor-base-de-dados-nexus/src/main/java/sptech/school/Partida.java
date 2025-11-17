@@ -1,5 +1,7 @@
 package sptech.school;
 
+import java.time.LocalDate;
+
 public class Partida {
     private String nomePlayer;
     private Integer funcao;
@@ -14,8 +16,9 @@ public class Partida {
     private Integer kill;
     private Integer death;
     private Integer assists;
+    private LocalDate dataPartida;
 
-    public Partida(String nomePlayer, Integer funcao, String campeao, String kda, Integer cs, Double csPorMin, String runas, String feitico, String resultado, Double duracao, Integer kill, Integer death, Integer assists) {
+    public Partida(String nomePlayer, Integer funcao, String campeao, String kda, Integer cs, Double csPorMin, String runas, String feitico, String resultado, Double duracao, Integer kill, Integer death, Integer assists, LocalDate dataPartida) {
         this.nomePlayer = nomePlayer;
         this.funcao = funcao;
         this.campeao = campeao;
@@ -29,6 +32,11 @@ public class Partida {
         this.kill = kill;
         this.death = death;
         this.assists = assists;
+        this.dataPartida = dataPartida;
+    }
+
+    public void setDataPartida(LocalDate dataPartida) {
+        this.dataPartida = dataPartida;
     }
 
     public void setNomePlayer(String nomePlayer) {
@@ -81,6 +89,10 @@ public class Partida {
 
     public void setAssists(Integer assists) {
         this.assists = assists;
+    }
+
+    public LocalDate getDataPartida() {
+        return dataPartida;
     }
 
     public String getNomePlayer() {

@@ -131,7 +131,7 @@ public class LeitorExcel {
             Sheet sheet = workbook.getSheetAt(0);
 
             String nomeBaseDoArquivo = new File(nomeDoArquivoS3).getName();
-            String nomePlayer = nomeBaseDoArquivo.replace("relatorio_", "").replace(".xlsx", "").trim();
+            String nomePlayer = nomeBaseDoArquivo.replace("relatorio_", "").replace(".xlsx", "").trim().toLowerCase();
 
             // Log atualizado
             new LogInfo("Iniciando leitura do histórico do arquivo: " + nomeBaseDoArquivo).registrar(this.dbConnection);
@@ -160,6 +160,7 @@ public class LeitorExcel {
                 Integer kill = getIntCell(row.getCell(8));
                 Integer death = getIntCell(row.getCell(9));
                 Integer assists = getIntCell(row.getCell(10));
+                LocalDate dataPartida = parseDateCell(row.getCell(11));
 
                 // Logs de Erro atualizados (adicionando a linha para contexto)
                 if (funcao == null) new LogErro("A variável 'funcao' está nula. (Linha " + i + ")").registrar(this.dbConnection);
@@ -182,7 +183,7 @@ public class LeitorExcel {
 
                     Partida novaPartida = new Partida(
                             nomePlayer, funcao, campeao, kda, null, csPorMin, runas, feitico,
-                            resultado, duracao, kill, death, assists
+                            resultado, duracao, kill, death, assists, dataPartida
                     );
 
                     historico.add(novaPartida);
@@ -269,14 +270,20 @@ public class LeitorExcel {
 
     private Integer parseFuncaoCell(Cell cell) {
         if (cell == null || cell.getCellType() != CellType.STRING) return null;
-        String valor = cell.getStringCellValue().toLowerCase();
+
+        String valor = cell.getStringCellValue().trim().toLowerCase();
+
         return switch (valor) {
             case "top lane", "top", "rota superior", "topo" -> 1;
-            case "jungle", "selva", "caçador" -> 2;
+            case "jungle", "selva", "caçador", "jungler" -> 2;
             case "mid lane", "mid", "rota do meio", "meio" -> 3;
-            case "bot lane", "bot", "rota inferior", "atirador" -> 4;
+            case "bot lane", "bot", "rota inferior", "atirador", "adc", "bottom" -> 4; // Adicionado ADC/Bottom
             case "support", "suporte", "sup" -> 5;
-            default -> null;
+            default -> {
+
+                System.out.println("AVISO: Função não reconhecida: '" + valor + "'");
+                yield null;
+            }
         };
     }
 

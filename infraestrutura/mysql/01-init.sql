@@ -60,7 +60,7 @@ CREATE TABLE IF NOT EXISTS jogador (
 
 CREATE TABLE IF NOT EXISTS partida (
     id_partida INT PRIMARY KEY AUTO_INCREMENT,
-    datahora_inicio DATETIME,
+    datahora_inicio DATE NOT NULL,
     duracao_segundos INT NOT NULL
 );
 
