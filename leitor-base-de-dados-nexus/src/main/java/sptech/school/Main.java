@@ -27,29 +27,31 @@ public class Main {
         dbConnection.limparBanco();
 
         // 3. Todas as chamadas de Log foram atualizadas
+
+        SlackNotifier.enviarMensagem("[INFO] INÍCIO DO PROCESSAMENTO");
         new LogInfo("==== INÍCIO DO PROCESSAMENTO ====").registrar(dbConnection);
 
         // LER O ARQUIVO PRINCIPAL
         String arquivoBase = "base de dados v1.xlsx";
 
+        SlackNotifier.enviarMensagem("[INFO] BUSCANDO ARQUIVO S3");
         new LogInfo("Buscando o arquivo principal no S3: " + arquivoBase).registrar(dbConnection);
 
         try {
             // Baixa o arquivo como InputStream
             InputStream arquivoBaseStream = s3Service.getFileAsInputStream(bucketName, arquivoBase);
 
+            SlackNotifier.enviarMensagem("[INFO] ARQUIVO ENCONTRADO");
             new LogInfo("Arquivo encontrado! Lendo jogadores...").registrar(dbConnection);
-
-            // O próprio método InserirJogadores deve usar o 'leitorExcel'
-            // (Assumindo que LeitorExcel foi ajustado como na conversa anterior)
             dbConnection.InserirJogadores(leitorExcel.Extrairjogadores(arquivoBaseStream));
 
             arquivoBaseStream.close();
         } catch (Exception e) {
+            SlackNotifier.enviarMensagem("[ERROR] ERRO AO LER BASE DE DADOS");
             new LogErro("Erro ao ler o arquivo base: " + e.getMessage()).registrar(dbConnection);
         }
 
-        // LER OS HISTÓRICOS
+        SlackNotifier.enviarMensagem("[INFO] BUSCANDO ARQUIVOS DA PAGINA HISTORICO/ DO S3");
         new LogInfo("\nBuscando arquivos na pasta 'Historico/' do S3...").registrar(dbConnection);
 
         try {
@@ -57,17 +59,18 @@ public class Main {
             List<String> arquivosHistorico = s3Service.listObjects(bucketName, "Historico/");
 
             if (arquivosHistorico == null || arquivosHistorico.isEmpty()) {
+                SlackNotifier.enviarMensagem("[INFO] NENHUM ARQUIVO ENCONTRADO PASTA HISTORICO/ DO S3 ");
                 new LogInfo("Nenhum arquivo encontrado na pasta 'Historico/'.").registrar(dbConnection);
             } else {
                 for (String key : arquivosHistorico) {
                     // Ignora "arquivos" que são apenas a própria pasta
                     if (key.toLowerCase().endsWith(".xlsx")) {
+
+                        SlackNotifier.enviarMensagem("[INFO] PRACESSANDO ARQUIVOS DA PASTA HISTORICO/ DO S3");
                         new LogInfo("Processando arquivo de histórico: " + key).registrar(dbConnection);
 
                         InputStream historicoStream = s3Service.getFileAsInputStream(bucketName, key);
 
-                        // O método ExtrairHistorico agora usa o dbConnection
-                        // que foi passado no construtor do leitorExcel
                         leitorExcel.ExtrairHistorico(historicoStream, key);
 
                         historicoStream.close();
@@ -76,9 +79,11 @@ public class Main {
             }
 
         } catch (Exception e) {
+            SlackNotifier.enviarMensagem("[ERROR] ERRO AO PROCESSAR ARQUIVOS DA PASTA HISTORICO/ DO S3");
             new LogErro("Erro ao processar arquivos da pasta 'Historico/': " + e.getMessage()).registrar(dbConnection);
         }
 
+        SlackNotifier.enviarMensagem("[SUCESSO] PROCESSAMENTO CONCLUIDO");
         new LogSucesso("\n==== PROCESSAMENTO CONCLUÍDO ====").registrar(dbConnection);
     }
 }

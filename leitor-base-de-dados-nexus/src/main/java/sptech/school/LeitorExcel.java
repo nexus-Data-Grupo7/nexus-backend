@@ -157,23 +157,34 @@ public class LeitorExcel {
                 String feitico = getStringCell(row, 5);
                 Boolean resultadoBool = parseResultadoCell(row.getCell(6));
                 Double duracao = parseDuracaoCell(row.getCell(7));
-                Integer kill = getIntCell(row.getCell(8));
-                Integer death = getIntCell(row.getCell(9));
-                Integer assists = getIntCell(row.getCell(10));
-                LocalDate dataPartida = parseDateCell(row.getCell(11));
+                Integer csNum = getIntCell(row.getCell(8));      // Coluna I -> CS_num
+                Integer kill = getIntCell(row.getCell(9));       // Coluna J -> Kills
+                Integer death = getIntCell(row.getCell(10));     // Coluna K -> Deaths
+                Integer assists = getIntCell(row.getCell(11));   // Coluna L -> Assists
+                LocalDate dataPartida = parseDateCell(row.getCell(12));
 
-                // Logs de Erro atualizados (adicionando a linha para contexto)
-                if (funcao == null) new LogErro("A variável 'funcao' está nula. (Linha " + i + ")").registrar(this.dbConnection);
-                if (campeao == null) new LogErro("A variável 'campeao' está nula. (Linha " + i + ")").registrar(this.dbConnection);
-                if (kda == null) new LogErro("A variável 'kda' está nula. (Linha " + i + ")").registrar(this.dbConnection);
-                if (csPorMin == null) new LogErro("A variável 'csPorMin' está nula. (Linha " + i + ")").registrar(this.dbConnection);
-                if (runas == null) new LogErro("A variável 'runas' está nula. (Linha " + i + ")").registrar(this.dbConnection);
-                if (feitico == null) new LogErro("A variável 'feitico' está nula. (Linha " + i + ")").registrar(this.dbConnection);
-                if (resultadoBool == null) new LogErro("A variável 'resultado' está nula. (Linha " + i + ")").registrar(this.dbConnection);
-                if (duracao == null) new LogErro("A variável 'duracao' está nula. (Linha " + i + ")").registrar(this.dbConnection);
-                if (kill == null) new LogErro("A variável 'kill' está nula. (Linha " + i + ")").registrar(this.dbConnection);
-                if (death == null) new LogErro("A variável 'death' está nula. (Linha " + i + ")").registrar(this.dbConnection);
-                if (assists == null) new LogErro("A variável 'assists' está nula. (Linha " + i + ")").registrar(this.dbConnection);
+                if (funcao == null)
+                    new LogErro("A variável 'funcao' está nula. (Linha " + i + ")").registrar(this.dbConnection);
+                if (campeao == null)
+                    new LogErro("A variável 'campeao' está nula. (Linha " + i + ")").registrar(this.dbConnection);
+                if (kda == null)
+                    new LogErro("A variável 'kda' está nula. (Linha " + i + ")").registrar(this.dbConnection);
+                if (csPorMin == null)
+                    new LogErro("A variável 'csPorMin' está nula. (Linha " + i + ")").registrar(this.dbConnection);
+                if (runas == null)
+                    new LogErro("A variável 'runas' está nula. (Linha " + i + ")").registrar(this.dbConnection);
+                if (feitico == null)
+                    new LogErro("A variável 'feitico' está nula. (Linha " + i + ")").registrar(this.dbConnection);
+                if (resultadoBool == null)
+                    new LogErro("A variável 'resultado' está nula. (Linha " + i + ")").registrar(this.dbConnection);
+                if (duracao == null)
+                    new LogErro("A variável 'duracao' está nula. (Linha " + i + ")").registrar(this.dbConnection);
+                if (kill == null)
+                    new LogErro("A variável 'kill' está nula. (Linha " + i + ")").registrar(this.dbConnection);
+                if (death == null)
+                    new LogErro("A variável 'death' está nula. (Linha " + i + ")").registrar(this.dbConnection);
+                if (assists == null)
+                    new LogErro("A variável 'assists' está nula. (Linha " + i + ")").registrar(this.dbConnection);
 
                 if (funcao != null && campeao != null && kda != null && csPorMin != null &&
                         runas != null && feitico != null && resultadoBool != null &&
@@ -182,7 +193,7 @@ public class LeitorExcel {
                     String resultado = resultadoBool ? "VITORIA" : "DERROTA";
 
                     Partida novaPartida = new Partida(
-                            nomePlayer, funcao, campeao, kda, null, csPorMin, runas, feitico,
+                            nomePlayer, funcao, campeao, kda, csNum, csPorMin, runas, feitico,
                             resultado, duracao, kill, death, assists, dataPartida
                     );
 
@@ -193,15 +204,14 @@ public class LeitorExcel {
                 }
             }
         } catch (IOException e) {
-            // Log atualizado
+            SlackNotifier.enviarMensagem("[ERROR] ERRO AO LER ARQUIVO DA PASTA HISTORICO/ DO S3");
             new LogErro("Erro de I/O ao ler o arquivo de histórico: " + e.getMessage()).registrar(this.dbConnection);
             throw new RuntimeException(e);
         }
 
-        // Correção: Usar 'this.dbConnection' em vez de criar uma nova
         this.dbConnection.InserirDesempenhoPartida(historico);
 
-        // Log atualizado
+        SlackNotifier.enviarMensagem("[SUCESSO] INSERÇÃO NO BANCO CONCLUIDA COM " + historico.size() + " PARTIDAS");
         new LogSucesso("Inserção no banco concluída com " + historico.size() + " partidas.").registrar(this.dbConnection);
         return historico;
     }

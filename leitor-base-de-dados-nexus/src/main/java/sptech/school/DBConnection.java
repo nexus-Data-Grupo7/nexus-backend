@@ -48,8 +48,8 @@ public class DBConnection {
 
         String sql = """
                     INSERT IGNORE INTO jogador
-                    (id_conta, id_organizacao, id_regiao, id_elo, game_name, tagline, nome, divisao, pontos_liga, premiacao)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    (id_conta, id_organizacao, id_regiao, id_elo, game_name, tagline, nome, divisao, pontos_liga, premiacao, idade)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """;
 
         for (Jogador j : jogadores) {
@@ -77,7 +77,8 @@ public class DBConnection {
                         j.getFullName(),
                         divisaoString,
                         null,
-                        j.getTotalWinnings()
+                        j.getTotalWinnings(),
+                        j.getAge()
                 );
 
                 if (linhasAfetadas == 0) {
