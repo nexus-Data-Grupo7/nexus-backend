@@ -45,6 +45,7 @@ CREATE TABLE IF NOT EXISTS jogador (
     pontos_liga INT DEFAULT 0,
     premiacao DOUBLE DEFAULT 0.00,
     idade INT,
+    
     CONSTRAINT fk_jogador_conta FOREIGN KEY (id_conta)
         REFERENCES conta(id_conta)
         ON DELETE CASCADE,
