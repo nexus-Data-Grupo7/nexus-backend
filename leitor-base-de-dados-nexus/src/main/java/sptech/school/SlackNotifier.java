@@ -8,7 +8,7 @@ import java.time.Duration;
 
 public class SlackNotifier {
 
-    private static final String WEBHOOK_URL = "https://hooks.slack.com/services/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";
+   private static final String WEBHOOK_URL = System.getenv("SLACK");
 
     public static void enviarMensagem(String mensagem) {
         try {
