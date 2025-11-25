@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS jogador (
     id_organizacao INT NULL,
     id_regiao INT NOT NULL,
     id_elo INT NULL,
-    game_name VARCHAR(50) NOT NULL,
+    game_name VARCHAR(50) NOT NULL UNIQUE,
     tagline VARCHAR(10),
     nome VARCHAR(45) NOT NULL,
     divisao ENUM('I', 'II', 'III', 'IV') NULL,
@@ -128,6 +128,13 @@ CREATE TABLE IF NOT EXISTS log (
     CONSTRAINT fk_log_conta FOREIGN KEY (id_conta) 
         REFERENCES conta(id_conta) 
         ON DELETE SET NULL
+);
+
+CREATE TABLE ranking_historico (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    id_jogador INT NOT NULL,
+    posicao INT NOT NULL,
+    data_registro DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
 INSERT INTO regiao (codigo_regiao, nome_regiao) VALUES 

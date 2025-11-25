@@ -83,7 +83,20 @@ public class Main {
             new LogErro("Erro ao processar arquivos da pasta 'Historico/': " + e.getMessage()).registrar(dbConnection);
         }
 
-        SlackNotifier.enviarMensagem("[SUCESSO] PROCESSAMENTO CONCLUIDO");
-        new LogSucesso("\n==== PROCESSAMENTO CONCLUÍDO ====").registrar(dbConnection);
+        SlackNotifier.enviarMensagem("[INFO] GERANDO RANKING...");
+        new LogInfo("Gerando ranking e salvando no histórico...").registrar(dbConnection);
+
+        dbConnection.gerarHistoricoRanking();
+
+        SlackNotifier.enviarMensagem("[SUCESSO] RANKING SALVO");
+        new LogSucesso("Ranking calculado e salvo com sucesso!").registrar(dbConnection);
+
+        // ------------------------
+        // 4) FINALIZA
+        // ------------------------
+        SlackNotifier.enviarMensagem("[SUCESSO] PROCESSAMENTO CONCLUÍDO");
+        new LogSucesso("==== PROCESSAMENTO CONCLUÍDO ====").registrar(dbConnection);
     }
+
+
 }

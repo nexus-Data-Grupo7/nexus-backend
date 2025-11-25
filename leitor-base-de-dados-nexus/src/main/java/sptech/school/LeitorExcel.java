@@ -333,7 +333,7 @@ public class LeitorExcel {
                 segundos = Integer.parseInt(partes[2]);
             }
         } catch (NumberFormatException e) {
-            // Log atualizado
+
             new LogErro("Erro ao converter duracao: " + cell.getStringCellValue()).registrar(this.dbConnection);
         }
         return (double) horas * 3600 + minutos * 60 + segundos;

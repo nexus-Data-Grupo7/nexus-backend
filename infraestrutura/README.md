@@ -11,7 +11,7 @@
 ## ** Faca as altercoes no comando abaixo para que tudo funcione **
 
 ## Execute este comando para clonar este arquivo para sua EC2
-- `scp -i "C:\Users\ventu\OneDrive\Documentos\Sptech\Instrodução a sistemas operacionais\chave aws\grupo7.pem" -r C:\Users\ventu\OneDrive\Documentos\Sptech\ProjetoPI\GitBash\Nexus\nexus-backend\infraestrutura ubuntu@100.28.218.121:~/`
+- `scp -i "C:\Users\ventu\OneDrive\Documentos\Sptech\Instrodução a sistemas operacionais\chave aws\grupo7.pem" -r C:\Users\ventu\OneDrive\Documentos\Sptech\ProjetoPI\GitBash\Nexus\nexus-backend\infraestrutura ubuntu@3.236.247.218:~/`
 
 ## Dê a permissão para executar o arquivo
 - `chmod +x infraestrutura/setup.sh`

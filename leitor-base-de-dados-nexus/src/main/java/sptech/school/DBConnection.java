@@ -3,6 +3,7 @@ package sptech.school;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import software.amazon.awssdk.services.s3.endpoints.internal.Value;
 import sptech.school.LogsExtracao.LogErro;
 import sptech.school.LogsExtracao.LogInfo;
 import sptech.school.LogsExtracao.LogSucesso;
@@ -152,12 +153,12 @@ public class DBConnection {
         }
 
         String sql = """
-                INSERT INTO desempenho_partida (
-                    id_jogador, id_partida, id_campeao, id_funcao,
-                    resultado, abates, mortes, assistencias,
-                    cs_num, cs_por_minuto, runa_principal, feiticos
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """;
+                    INSERT INTO desempenho_partida (
+                        id_jogador, id_partida, id_campeao, id_funcao,
+                        resultado, abates, mortes, assistencias,
+                        cs_num, cs_por_minuto, runa_principal, feiticos
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """;
 
         for (Partida p : partidas) {
             try {
@@ -243,4 +244,57 @@ public class DBConnection {
             System.err.println("---------------------------------------------");
         }
     }
+
+    public void gerarHistoricoRanking() {
+        JdbcTemplate jdbc = getConnection();
+
+        String sql = """
+        WITH RankedPlayers AS (
+            SELECT 
+                j.id_jogador,
+                ROUND(COALESCE(SUM(dp.abates), 0) / NULLIF(COUNT(dp.id_partida), 0), 3) AS kda,
+                ROUND(
+                    (SUM(CASE WHEN dp.resultado = 'vitoria' THEN 1 ELSE 0 END) / 
+                    NULLIF(COUNT(dp.id_partida), 0)) * 100, 2
+                ) AS taxa_vitorias,
+                COALESCE(j.pontos_total, 0) AS premiacao,
+                j.ordem_elo,
+                j.divisao,
+                ROW_NUMBER() OVER (
+                    ORDER BY 
+                        j.ordem_elo DESC,
+                        divisao ASC,
+                        premiacao DESC,
+                        taxa_vitorias DESC,
+                        kda DESC
+                ) AS posicao_ranking
+            FROM jogador j
+            LEFT JOIN desempenho_partida dp
+                ON dp.id_jogador = j.id_jogador
+            GROUP BY 
+                j.id_jogador
+        )
+        SELECT * FROM RankedPlayers;
+    """;
+
+        // 1) EXECUTA A QUERY
+        List<ResultadoRanking> ranking = jdbc.query(sql, (rs, rowNum) ->
+                new ResultadoRanking(
+                        rs.getInt("id_jogador"),
+                        rs.getInt("posicao_ranking")
+                )
+        );
+
+        // 2) INSERE CADA LINHA NO HISTÓRICO
+        String insertSql =
+                "INSERT INTO ranking_historico (id_jogador, posicao, data_registro) " +
+                        "VALUES (?, ?, NOW())";
+
+        for (ResultadoRanking r : ranking) {
+            jdbc.update(insertSql, r.getIdJogador(), r.getPosicao());
+        }
+
+        System.out.println("Ranking salvo no histórico com sucesso!");
+    }
+
 }
