@@ -23,10 +23,6 @@ sudo systemctl enable docker
 echo "-->Iniciando a aplicação com Docker Compose..."
 sudo docker compose -f infraestrutura/docker-compose.yml up --build -d
 
-# echo "--> Carregando/Atualizando o agendamento do cron..."
-# sudo crontab /home/ubuntu/infraestrutura/trabalho_agendado.cron
-# echo "Agendamento do cron carregado a partir de trabalho_agendado.cron"
-
 echo "" 
 echo ">>> PROCESSO FINALIZADO <<<"
 echo "Aplicação iniciada."

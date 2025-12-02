@@ -6,7 +6,8 @@ CREATE TABLE IF NOT EXISTS conta (
     email VARCHAR(255) UNIQUE NOT NULL,
     senha_hash VARCHAR(255) NOT NULL,
     tipo_conta ENUM('JOGADOR', 'ORGANIZACAO', 'ADMIN') NOT NULL,
-    data_cadastro DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    data_cadastro DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    imagem_perfil VARCHAR(255)
 );
 
 CREATE TABLE IF NOT EXISTS organizacao (
@@ -44,7 +45,7 @@ CREATE TABLE IF NOT EXISTS jogador (
     divisao ENUM('I', 'II', 'III', 'IV') NULL,
     pontos_liga INT DEFAULT 0,
     premiacao DOUBLE DEFAULT 0.00,
-    idade INT,
+    dt_nascimento DATE,
     
     CONSTRAINT fk_jogador_conta FOREIGN KEY (id_conta)
         REFERENCES conta(id_conta)
