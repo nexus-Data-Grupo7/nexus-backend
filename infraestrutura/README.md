@@ -11,13 +11,13 @@
 ## ** Faca as altercoes no comando abaixo para que tudo funcione **
 
 ## Execute este comando para clonar este arquivo para sua EC2
-- `scp -i "C:\Users\ventu\OneDrive\Documentos\Sptech\Instrodução a sistemas operacionais\chave aws\grupo7.pem" -r C:\Users\ventu\OneDrive\Documentos\Sptech\ProjetoPI\GitBash\Nexus\nexus-backend\infraestrutura ubuntu@44.213.68.174:~/`
+- `scp -i "C:\Users\ventu\OneDrive\Documentos\Sptech\Instrodução a sistemas operacionais\chave aws\grupo7.pem" -r C:\Users\ventu\OneDrive\Documentos\Sptech\ProjetoPI\GitBash\Nexus\nexus-backend\infraestrutura ubuntu@100.28.2.9:~/`
 
 ## Dê a permissão para executar o arquivo
 - `chmod +x infraestrutura/setup.sh`
 
-## Execute o arquivo
-- `sudo ./infraestrutura/setup.sh`
+## Execute o arquivo dentro da pasta infraestrutura
+- `sudo ./setup.sh`
 
 ## Acessando os Serviços
 - **Front-end (Node.js):** `http://<IP_DO_SERVIDOR>:3333`
